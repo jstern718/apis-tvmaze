@@ -3,7 +3,8 @@
 const $showsList = $("#showsList");
 const $episodesArea = $("#episodesArea");
 const $searchForm = $("#searchForm");
-
+const SHOWS_BASE_URL = "https://api.tvmaze.com/"
+const SEARCH_ENDPOINT = "search/shows";
 
 /** Given a search term, search for tv shows that match that query.
  *
@@ -12,27 +13,51 @@ const $searchForm = $("#searchForm");
  *    (if no image URL given by API, put in a default image URL)
  */
 
-async function getShowsByTerm( /* term */) {
+async function getCatImg() {
   // ADD: Remove placeholder & make request to TVMaze search shows API.
+  let catResponse = await axios({
+    params: {q: "cat"},
+    method: "GET",
+    baseURL: SHOWS_BASE_URL,
+    url: SEARCH_ENDPOINT,
+  })
 
-  return [
-    {
-      id: 1767,
-      name: "The Bletchley Circle",
-      summary:
-        `<p><b>The Bletchley Circle</b> follows the journey of four ordinary 
-           women with extraordinary skills that helped to end World War II.</p>
-         <p>Set in 1952, Susan, Millie, Lucy and Jean have returned to their 
-           normal lives, modestly setting aside the part they played in 
-           producing crucial intelligence, which helped the Allies to victory 
-           and shortened the war. When Susan discovers a hidden code behind an
-           unsolved murder she is met by skepticism from the police. She 
-           quickly realises she can only begin to crack the murders and bring
-           the culprit to justice with her former friends.</p>`,
-      image:
-          "http://static.tvmaze.com/uploads/images/medium_portrait/147/369403.jpg"
+  return catResponse;
+}
+
+
+async function getShowsByTerm(searchTerm) {
+  // ADD: Remove placeholder & make request to TVMaze search shows API.
+  let response = await axios({
+    params: {q: searchTerm},
+    method: "GET",
+    baseURL: SHOWS_BASE_URL,
+    url: SEARCH_ENDPOINT,
+  })
+
+  const showData = [];
+  for (let show of response.data){
+    const showObject = {};
+    showObject.id = show.show.id;
+    showObject.name = show.show.name;
+    showObject.summary = show.show.summary;
+    if (show.show.image){
+      showObject.image = show.show.image.medium;
     }
-  ]
+    else{
+      // let cat = await getCatImg();
+
+      // console.log(cat);
+      // showObject.image = cat.data[6].image.medium;
+
+    }
+
+    showData.push(showObject);
+  }
+
+  console.log("showData", showData);
+
+  return showData;
 }
 
 
@@ -43,27 +68,16 @@ async function getShowsByTerm( /* term */) {
 
 function displayShows(shows) {
   $showsList.empty();
-
   for (const show of shows) {
-    const $show = $(`
-        <div data-show-id="${show.id}" class="Show col-md-12 col-lg-6 mb-4">
-         <div class="media">
-           <img 
-              src="http://static.tvmaze.com/uploads/images/medium_portrait/160/401704.jpg" 
-              alt="Bletchly Circle San Francisco" 
-              class="w-25 me-3">
-           <div class="media-body">
-             <h5 class="text-primary">${show.name}</h5>
-             <div><small>${show.summary}</small></div>
-             <button class="btn btn-outline-light btn-sm Show-getEpisodes">
-               Episodes
-             </button>
-           </div>
-         </div>
-       </div>
-      `);
 
-    $showsList.append($show);
+    const $name = `<h3>${show.name}</h3>`;
+    const $id = `<p>id: ${show.id}</p>`;
+    const $summary = `<p>${show.summary}</p>`;
+    const $image = `<img src="${show.image}">`;
+    $showsList.append($name);
+    $showsList.append($id);
+    $showsList.append($summary);
+    $showsList.append($image);
   }
 }
 
@@ -73,8 +87,8 @@ function displayShows(shows) {
  */
 
 async function searchShowsAndDisplay() {
-  const term = $("#searchForm-term").val();
-  const shows = await getShowsByTerm(term);
+  const searchTerm = $("#searchForm-term").val();
+  const shows = await getShowsByTerm(searchTerm);
 
   $episodesArea.hide();
   displayShows(shows);
